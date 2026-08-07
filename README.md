@@ -2,8 +2,7 @@
 
 [简体中文](README.md)　｜　[English](README-en.md)
 
-> **Fork baseado em:** [Neo-reGeorg](https://github.com/L-codes/Neo-reGeorg) por L-codes
-
+> **基于 L-codes 开发的 [Neo-reGeorg](https://github.com/L-codes/Neo-reGeorg) 分支**
 
 **Pug-reGeorg** 是一个旨在积极重构 [reGeorg](https://github.com/sensepost/reGeorg) 的项目，目的是：
 
