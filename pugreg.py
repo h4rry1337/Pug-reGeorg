@@ -86,13 +86,13 @@ PHPTIMEOUT    = 0.5
 # TLS/HTTP fingerprint impersonation (curl_cffi).
 # 'chrome' is an alias that always maps to the latest Chrome fingerprint
 # packaged with the installed curl_cffi. Override per invocation via
-# --impersonate PROFILE or disable with --impersonate off.
+# --impersonate PROFILE, disable with --impersonate off, or randomize
+# once per SOCKS session with --impersonate random.
 DEFAULT_IMPERSONATE = 'chrome'
 IMPERSONATE = DEFAULT_IMPERSONATE
-# Fallback pool for --list-impersonate when the installed curl_cffi does
-# not export BrowserType. Restricted to profiles that dominate real-world
-# traffic so the fingerprint blends in with the baseline of any modern
-# web target.
+# Pool used when --impersonate random is selected. Restricted to profiles
+# that dominate real-world traffic so the fingerprint blends in with the
+# baseline of any modern web target.
 RECOMMENDED_PROFILES = [
     'chrome',
     'chrome124',
@@ -835,6 +835,7 @@ if __name__ == '__main__':
         print("")
         print("Special values:")
         print("  chrome | firefox | safari | edge   Alias for the latest packaged profile")
+        print("  random                             Pick a recommended profile per invocation")
         print("  off                                Disable impersonation (use python-requests fingerprint)")
         if not using_curl_cffi:
             print("")
@@ -869,7 +870,7 @@ if __name__ == '__main__':
         parser.add_argument("--cut-right", metavar="N", help="Truncate the right side of the response body", type=int, default=0)
         parser.add_argument("--extract", metavar="EXPR", help="Manually extract BODY content (eg: <html><p>PUGREGBODY</p></html> )")
         parser.add_argument("--ntlm-auth", metavar="USER:PASS", help="Enable NTLM authentication for web requests (format: DOMAIN\\USER:PASSWORD or USER:PASSWORD)")
-        parser.add_argument("--impersonate", metavar="PROFILE", help="Browser TLS/HTTP fingerprint profile (JA3/JA4/HTTP2). Impersonation is ON by default ({}); use this only to pin a specific profile or 'off' to disable. See --list-impersonate for available profiles".format(DEFAULT_IMPERSONATE), default=DEFAULT_IMPERSONATE)
+        parser.add_argument("--impersonate", metavar="PROFILE", help="TLS/HTTP fingerprint profile (default: {}). Special: 'random' (per-session), 'off' (disable). See --list-impersonate for available profiles".format(DEFAULT_IMPERSONATE), default=DEFAULT_IMPERSONATE)
         parser.add_argument("--list-impersonate", help="List impersonation profiles supported by the installed curl_cffi and exit", action='store_true')
         parser.add_argument("-v", help="Increase verbosity level (use -vv or more for greater effect)", action='count', default=0)
         args = parser.parse_args()
@@ -1000,6 +1001,12 @@ if __name__ == '__main__':
             log.warning("[!] NTLM authentication is incompatible with TLS impersonation.")
             log.warning("[!] Disabling impersonation (traffic will match python-requests fingerprint).")
             IMPERSONATE = 'off'
+
+        # Resolve 'random' once per invocation so a single SOCKS session keeps
+        # a consistent fingerprint (rotating mid-session is itself an anomaly).
+        if IMPERSONATE == 'random':
+            IMPERSONATE = random.choice(RECOMMENDED_PROFILES)
+            log.debug("[TLS] Random profile selected: %s" % IMPERSONATE)
 
         print(separation)
 

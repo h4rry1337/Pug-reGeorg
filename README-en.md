@@ -1,8 +1,11 @@
-# Neo-reGeorg
+# Pug-reGeorg
 
 [简体中文](README.md)　｜　[English](README-en.md)
 
-**Neo-reGeorg** is a project designed to actively restructure [reGeorg](https://github.com/sensepost/reGeorg) with the aim of:
+> **Forked from:** [Neo-reGeorg](https://github.com/L-codes/Neo-reGeorg) by L-codes
+
+
+**Pug-reGeorg** is a project designed to actively restructure [reGeorg](https://github.com/sensepost/reGeorg) with the aim of:
 
 * Improve usability and avoid feature detection
 * Improve tunnel connection security
@@ -13,21 +16,39 @@
 
 ## Version
 
-5.3.0 - [Change Log](CHANGELOG-en.md)
+5.4.1 - [Change Log](CHANGELOG-en.md)
 
 
 ## python dependencies
 ```ruby
-python -m pip install requests
+# Core dependencies (bundles curl_cffi so JA3/JA4/HTTP2 fingerprint
+# impersonation is enabled out of the box)
+python -m pip install -r requirements.txt
 
-# Optional
-python -m pip install requests[socks] # SOCKS5 proxy support
-python -m pip install curl-cffi       # Switch to the curl-cffi library for improved performance and stability
-python -m pip install requests_ntlm   # NTLM authentication support
+# Optional (SOCKS5 for the requests fallback + NTLM authentication)
+python -m pip install -r requirements-optional.txt
 ```
+
+## TLS/HTTP Fingerprint Evasion (JA3/JA4)
+
+By default, Pug-reGeorg uses `curl_cffi` (built on curl-impersonate + BoringSSL/NSS) to mimic a real browser TLS ClientHello, HTTP/2 SETTINGS frame and header ordering. The resulting JA3/JA4 fingerprint matches Chrome/Firefox/Safari byte-for-byte, so the client blends into the target's baseline traffic and bypasses fingerprint-based detection in WAFs, CDNs (Cloudflare/Akamai/Imperva), TLS inspection appliances (PAN, F5, Fortinet) and NIDS with JA3 rules (Suricata, Zeek).
+
+* Default: `--impersonate chrome` (latest Chrome fingerprint packaged with curl_cffi)
+* Pin a version: `--impersonate firefox133`, `--impersonate safari17_0`, etc.
+* Randomize per invocation: `--impersonate random` (held constant across a single SOCKS session)
+* Disable: `--impersonate off` (falls back to the python-requests fingerprint)
+* List everything supported by your installed curl_cffi: `python pugreg.py --list-impersonate`
+
+**Caveats:**
+
+1. Impersonation is client-side only. Server-side tunnel scripts under `templates/` are untouched.
+2. `--ntlm-auth` is incompatible with impersonation because `HttpNtlmAuth` only plugs into a `requests` session. When both are set, impersonation is auto-disabled with a warning.
+3. Passing `-H 'User-Agent: ...'` overrides the UA that curl_cffi picks to match the impersonated browser, breaking UA/JA3 coherence. If you must customize the UA, keep it consistent with the profile.
+4. JA3/JA4 evasion closes the perimeter gap (CDN/WAF/TLS inspection/NIDS). It does **not** hide behavioral patterns (READ polling loop, POST timing, endpoint access frequency) or protect against L7 body analysis and host-side EDR. Combine with `--request-template`, `-u <multiple-urls>` and `--read-interval` to attack those layers.
 
 ## Features
 
+* Impersonates real browser TLS/HTTP2 fingerprints (JA3/JA4) by default via curl_cffi to evade WAF/CDN/NIDS perimeter detection
 * The transmission content is encrypted by deformed base64 and disguised as base64 encoding
 * Use BLV (Byte-LengthOffset-Value) data format to transmit data
 * Direct request response can be customized (such as a disguised 404 page)
@@ -49,21 +70,21 @@ python -m pip install requests_ntlm   # NTLM authentication support
 * **Step 1.**
 Set the password to generate tunnel server.(aspx|ashx|jsp|jspx|php) and upload it to the web server.
 ```ruby
-$ python neoreg.py generate -k password
+$ python pugreg.py generate -k password
 
-    [+] Create neoreg server files:
-       => neoreg_servers/tunnel.jsp
-       => neoreg_servers/tunnel.jspx
-       => neoreg_servers/tunnel.ashx
-       => neoreg_servers/tunnel.aspx
-       => neoreg_servers/tunnel.php
-       => neoreg_servers/tunnel.go
+    [+] Create pugreg server files:
+       => pugreg_tunnels/tunnel.jsp
+       => pugreg_tunnels/tunnel.jspx
+       => pugreg_tunnels/tunnel.ashx
+       => pugreg_tunnels/tunnel.aspx
+       => pugreg_tunnels/tunnel.php
+       => pugreg_tunnels/tunnel.go
 ```
 
 * **Step 2.**
-Use `neoreg.py` to connect to the web server and create a socks5 proxy locally.
+Use `pugreg.py` to connect to the web server and create a socks5 proxy locally.
 ```ruby
-$ python3 neoreg.py -k password -u http://xx/tunnel.php
+$ python3 pugreg.py -k password -u http://xx/tunnel.php
 +------------------------------------------------------------------------+
   Log Level set to [DEBUG]
   Starting socks server [127.0.0.1:1080]
@@ -77,63 +98,63 @@ $ python3 neoreg.py -k password -u http://xx/tunnel.php
 
 1. Support the generated server, by default directly requesting and responding to the specified page content (such as a disguised 404 page)
 ```ruby
-$ python neoreg.py generate -k <you_password> --file 404.html
-$ python neoreg.py -k <you_password> -u <server_url> --skip
+$ python pugreg.py generate -k <you_password> --file 404.html
+$ python pugreg.py -k <you_password> -u <server_url> --skip
 ```
 
 2. For example, the server WEB needs to set the proxy to access
 ```ruby
-$ python neoreg.py -k <you_password> -u <server_url> --proxy socks5://10.1.1.1:8080
+$ python pugreg.py -k <you_password> -u <server_url> --proxy socks5://10.1.1.1:8080
 ```
 
 3. To set `Authorization`, there are also custom `Header` or `Cookie` content.
 ```ruby
-$ python neoreg.py -k <you_password> -u <server_url> -H 'Authorization: cm9vdDppcyB0d2VsdmU=' --cookie "key=value;key2=value2"
+$ python pugreg.py -k <you_password> -u <server_url> -H 'Authorization: cm9vdDppcyB0d2VsdmU=' --cookie "key=value;key2=value2"
 ```
 
-4. Need to disperse requests, upload to multiple paths, such as memory-webshell
+4. Need to disperse requests, upload to multiple paths, such as memory-based tunnel
 ```ruby
-$ python neoreg.py -k <you_password> -u <url_1> -u <url_2> -u <url_3> ...
+$ python pugreg.py -k <you_password> -u <url_1> -u <url_2> -u <url_3> ...
 ```
 
 5. Turn on http forwarding to cope with load balancing
 ```ruby
-$ python neoreg.py -k <you_password> -u <url> -r <redirect_url>
+$ python pugreg.py -k <you_password> -u <url> -r <redirect_url>
 ```
 
 6. Use the port forwarding function, do not start the socks5 service ( 127.0.0.1:1080 -> ip:port )
 ```ruby
-$ python neoreg.py -k <you_password> -u <url> -t <ip:port>
+$ python pugreg.py -k <you_password> -u <url> -t <ip:port>
 ```
 
 7. Set the request content template (you need to specify it when generating)
 ```ruby
-# The request content will be replaced with NEOREGBODY
-$ python3 neoreg.py -k password -T 'img=data:image/png;base64,NEOREGBODY&save=ok'
-$ python3 neoreg.py -k password -T 'img=data:image/png;base64,NEOREGBODY&save=ok' -u http://127.0.0.1:8000/anysting
+# The request content will be replaced with PUGREGBODY
+$ python3 pugreg.py -k password -T 'img=data:image/png;base64,PUGREGBODY&save=ok'
+$ python3 pugreg.py -k password -T 'img=data:image/png;base64,PUGREGBODY&save=ok' -u http://127.0.0.1:8000/anysting
 
 # NOTE Allows template content to be written to a file -T file
 ```
 
-8. Support the creation process to start a new Neoreg server-side, which can deal with harsh special environments
+8. Support the creation process to start a new Pugreg server-side, which can deal with harsh special environments
 ```ruby
-$ go run neoreg_servers/tunnel.go 8000
-$ python3 neoreg.py -k password -u http://127.0.0.1:8000/anysting
+$ go run pugreg_tunnels/tunnel.go 8000
+$ python3 pugreg.py -k password -u http://127.0.0.1:8000/anysting
 ```
 
 9. Supports in-memory proxy format for Node.js. Modify the path in the JS file by adding `const path = '/proxy_path';`, and include the `--async-connect` parameter for connections.
 ```ruby
-$ python3 neoreg.py -k password --async-connect -u <url>
+$ python3 pugreg.py -k password --async-connect -u <url>
 ```
 
 * For more information on performance and stability parameters, refer to -h help information
 ```ruby
 # Generate server-side scripts
-$ python neoreg.py generate -h
-    usage: neoreg.py [-h] -k KEY [-o DIR] [-f FILE] [-c CODE] [--read-buff Bytes]
+$ python pugreg.py generate -h
+    usage: pugreg.py [-h] -k KEY [-o DIR] [-f FILE] [-c CODE] [--read-buff Bytes]
                      [--max-read-size KB]
 
-    Generate neoreg webshell
+    Generate pugreg tunnel server
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -145,13 +166,13 @@ $ python neoreg.py generate -h
                             recommended to <400 (default: 200)
       -T STR/FILE, --request-template STR/FILE
                             HTTP request template (eg:
-                            'img=data:image/png;base64,NEOREGBODY&save=ok')
+                            'img=data:image/png;base64,PUGREGBODY&save=ok')
       --read-buff Bytes     Remote read buffer (default: 513)
       --max-read-size KB    Remote max read size (default: 512)
 
 # Connection server
-$ python neoreg.py -h
-    usage: neoreg.py [-h] -u URI [-r URL] [-R] [-t IP:PORT] -k KEY [-l IP]
+$ python pugreg.py -h
+    usage: pugreg.py [-h] -u URI [-r URL] [-R] [-t IP:PORT] -k KEY [-l IP]
                      [-p PORT] [-s] [-H LINE] [-c LINE] [-x LINE] [-T STR/FILE]
                      [-a] [--php-skip-cookie] [--go] [--php-connect-timeout S]
                      [--local-dns] [--read-buff KB] [--read-interval MS]
@@ -159,7 +180,7 @@ $ python neoreg.py -h
                      [--cut-left N] [--cut-right N] [--extract EXPR]
                      [--ntlm-auth USER:PASS] [-v]
 
-    Socks server for Neoreg HTTP(s) tunneller (DEBUG MODE: -k debug)
+    Socks server for Pugreg HTTP(s) tunneller (DEBUG MODE: -k debug)
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -185,7 +206,7 @@ $ python neoreg.py -h
                             Proto://host[:port] Use proxy on given port
       -T STR/FILE, --request-template STR/FILE
                             HTTP request template (eg:
-                            'img=data:image/png;base64,NEOREGBODY&save=ok')
+                            'img=data:image/png;base64,PUGREGBODY&save=ok')
       -a, --async-connect   Asynchronous CONNECT (e.g., in PHP, Node.js)
       --php-skip-cookie     Skip cookie availability check in php
       --go                  Use go connection method
@@ -201,7 +222,7 @@ $ python neoreg.py -h
       --cut-left N          Truncate the left side of the response body
       --cut-right N         Truncate the right side of the response body
       --extract EXPR        Manually extract BODY content (eg:
-                            <html><p>NEOREGBODY</p></html> )
+                            <html><p>PUGREGBODY</p></html> )
       --ntlm-auth USER:PASS
                             Enable NTLM authentication for web requests (format:
                             DOMAIN\USER:PASSWORD or USER:PASSWORD)
@@ -212,16 +233,9 @@ $ python neoreg.py -h
 
 ## Remind
 
-* When running `neoreg.py` with high concurrency on Mac OSX, a large number of network requests will be lost. You can use `ulimit -n 2560` to modify the "maximum number of open files" of the current shell.
+* When running `pugreg.py` with high concurrency on Mac OSX, a large number of network requests will be lost. You can use `ulimit -n 2560` to modify the "maximum number of open files" of the current shell.
 
 
 ## License
 
 GPL 3.0
-
-
-## Star History Chart
-
-[![Star History Chart](https://app.repohistory.com/api/svg?repo=l-codes/Neo-reGeorg&type=Date&background=0D1117&color=f86262)](https://app.repohistory.com/star-history)
-
-<img align='right' src="https://profile-counter.glitch.me/neo-regeorg/count.svg" width="200">

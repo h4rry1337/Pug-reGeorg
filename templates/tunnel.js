@@ -1,3 +1,4 @@
+// Build: gtvhwyuf
 (async () => {
   const path = '/proxy_path';
 
@@ -239,7 +240,7 @@
           }
 
           if (sayhello) {
-            const message = "NeoGeorg says, 'All seems fine'";
+            const message = "PugGeorg says, 'Endpoint ready'";
             const translated_m = strtr(message, de, en);
             const decoded_m = Buffer.from(translated_m, 'base64').toString();
             res.end(decoded_m);

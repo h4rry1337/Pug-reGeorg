@@ -1,7 +1,7 @@
-neoreg_servers/*
+pugreg_servers/*
 .DS_Store
 TODO.md
 .idea
-templates/NeoreGeorg.class
+templates/PugReGeorg.class
 tools/*
 *.swp

