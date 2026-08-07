@@ -21,12 +21,9 @@
 
 ## python dependencies
 ```ruby
-# Core dependencies (bundles curl_cffi so JA3/JA4/HTTP2 fingerprint
-# impersonation is enabled out of the box)
+# Core dependencies (includes curl_cffi for JA3/JA4/HTTP2 fingerprinting,
+# SOCKS5 proxy support, and NTLM authentication)
 python -m pip install -r requirements.txt
-
-# Optional (SOCKS5 for the requests fallback + NTLM authentication)
-python -m pip install -r requirements-optional.txt
 ```
 
 ## TLS/HTTP Fingerprint Evasion (JA3/JA4)

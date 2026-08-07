@@ -11,7 +11,7 @@
     1. Enabled TLS/HTTP fingerprint impersonation (JA3/JA4/HTTP2) by default via curl_cffi to evade WAF/CDN/NIDS fingerprint-based detection
     2. Added `--impersonate PROFILE` to select or override the browser fingerprint (default: chrome; special values: random, off)
     3. Added `--list-impersonate` to enumerate profiles supported by the installed curl_cffi
-    4. Added `requirements.txt` and `requirements-optional.txt` to simplify dependency installation
+    4. Added `requirements.txt` to simplify dependency installation
     5. Modernized the fallback User-Agent pool (Chrome 131 / Firefox 133 / Safari 17 / Edge), only used when impersonation is disabled
     6. `--ntlm-auth` auto-disables impersonation with a warning when both are set (HttpNtlmAuth is not compatible with curl_cffi sessions)
 

@@ -40,11 +40,8 @@
 
 ## python 依赖
 ```ruby
-# 核心依赖 (包含 curl_cffi，默认启用 JA3/JA4/HTTP2 指纹伪装)
+# 核心依赖 (包含 curl_cffi JA3/JA4/HTTP2 指纹伪装、SOCKS5 代理支持、NTLM 认证)
 python -m pip install -r requirements.txt
-
-# 可选依赖 (SOCKS5 代理支持 + NTLM 认证)
-python -m pip install -r requirements-optional.txt
 ```
 
 ## TLS/HTTP 指纹规避 (JA3/JA4)
