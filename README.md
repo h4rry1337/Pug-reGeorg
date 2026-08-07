@@ -153,20 +153,19 @@ $ python3 pugreg.py -k password --async-connect -u http://127.0.0.1:8000/proxy_p
 ```ruby
 # 生成服务端脚本
 $ python pugreg.py generate -h
-    usage: pugreg.py [-h] -k KEY [-o DIR] [-f FILE] [-c CODE] [--read-buff Bytes]
-                     [--max-read-size KB]
+    usage: pugreg.py [-h] -k KEY [-o DIR] [-f FILE] [-c CODE] [-T STR/FILE]
+                     [--read-buff Bytes] [--max-read-size KB]
 
     Generate pugreg tunnel server
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
-      -k KEY, --key KEY     Specify connection key.
-      -o DIR, --outdir DIR  Output directory.
-      -f FILE, --file FILE  Camouflage html page file
-      -c CODE, --httpcode CODE
-                            Specify HTTP response code. When using -r, it is
+      -k, --key KEY         Specify connection key.
+      -o, --outdir DIR      Output directory.
+      -f, --file FILE       Camouflage html page file
+      -c, --httpcode CODE   Specify HTTP response code. When using -r, it is
                             recommended to <400 (default: 200)
-      -T STR/FILE, --request-template STR/FILE
+      -T, --request-template STR/FILE
                             HTTP request template (eg:
                             'img=data:image/png;base64,PUGREGBODY&save=ok')
       --read-buff Bytes     Remote read buffer (default: 513)
@@ -180,33 +179,29 @@ $ python pugreg.py -h
                      [--local-dns] [--read-buff KB] [--read-interval MS]
                      [--write-interval MS] [--max-threads N] [--max-retry N]
                      [--cut-left N] [--cut-right N] [--extract EXPR]
-                     [--ntlm-auth USER:PASS] [-v]
+                     [--ntlm-auth USER:PASS] [--impersonate PROFILE]
+                     [--list-impersonate] [-v]
 
     Socks server for Pugreg HTTP(s) tunneller (DEBUG MODE: -k debug)
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
-      -u URI, --url URI     The url containing the tunnel script
-      -r URL, --redirect-url URL
+      -u, --url URI         The url containing the tunnel script
+      -r, --redirect-url URL
                             Intranet forwarding the designated server (only
                             java/.net)
       -R, --force-redirect  Forced forwarding (only jsp -r)
-      -t IP:PORT, --target IP:PORT
-                            Network forwarding Target, After setting this
+      -t, --target IP:PORT  Network forwarding Target, After setting this
                             parameter, port forwarding will be enabled
-      -k KEY, --key KEY     Specify connection key
-      -l IP, --listen-on IP
-                            The default listening address (default: 127.0.0.1)
-      -p PORT, --listen-port PORT
+      -k, --key KEY         Specify connection key
+      -l, --listen-on IP    The default listening address (default: 127.0.0.1)
+      -p, --listen-port PORT
                             The default listening port (default: 1080)
       -s, --skip            Skip usability testing
-      -H LINE, --header LINE
-                            Pass custom header LINE to server
-      -c LINE, --cookie LINE
-                            Custom init cookies
-      -x LINE, --proxy LINE
-                            Proto://host[:port] Use proxy on given port
-      -T STR/FILE, --request-template STR/FILE
+      -H, --header LINE     Pass custom header LINE to server
+      -c, --cookie LINE     Custom init cookies
+      -x, --proxy LINE      Proto://host[:port] Use proxy on given port
+      -T, --request-template STR/FILE
                             HTTP request template (eg:
                             'img=data:image/png;base64,PUGREGBODY&save=ok')
       -a, --async-connect   Asynchronous CONNECT (e.g., in PHP, Node.js)
@@ -228,6 +223,12 @@ $ python pugreg.py -h
       --ntlm-auth USER:PASS
                             Enable NTLM authentication for web requests (format:
                             DOMAIN\USER:PASSWORD or USER:PASSWORD)
+      --impersonate PROFILE
+                            TLS/HTTP fingerprint profile (default: chrome).
+                            Special: 'random' (per-session), 'off' (disable). See
+                            --list-impersonate for available profiles
+      --list-impersonate    List impersonation profiles supported by the installed
+                            curl_cffi and exit
       -v                    Increase verbosity level (use -vv or more for greater
                             effect)
 ```
