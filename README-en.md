@@ -33,7 +33,13 @@ python -m pip install -r requirements-optional.txt
 
 By default, Pug-reGeorg uses `curl_cffi` (built on curl-impersonate + BoringSSL/NSS) to mimic a real browser TLS ClientHello, HTTP/2 SETTINGS frame and header ordering. The resulting JA3/JA4 fingerprint matches Chrome/Firefox/Safari byte-for-byte, so the client blends into the target's baseline traffic and bypasses fingerprint-based detection in WAFs, CDNs (Cloudflare/Akamai/Imperva), TLS inspection appliances (PAN, F5, Fortinet) and NIDS with JA3 rules (Suricata, Zeek).
 
-* Default: `--impersonate chrome` (latest Chrome fingerprint packaged with curl_cffi)
+**Note:** Chrome fingerprinting is **enabled by default** even without the `--impersonate` flag.
+
+* Default behavior (no flag needed): Uses latest Chrome fingerprint
+  ```bash
+  python pugreg.py -u https://target.com/tunnel.php -k mykey
+  # ↑ Equivalent to --impersonate chrome
+  ```
 * Pin a version: `--impersonate firefox133`, `--impersonate safari17_0`, etc.
 * Randomize per invocation: `--impersonate random` (held constant across a single SOCKS session)
 * Disable: `--impersonate off` (falls back to the python-requests fingerprint)

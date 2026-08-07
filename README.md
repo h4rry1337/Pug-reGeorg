@@ -51,7 +51,13 @@ python -m pip install -r requirements-optional.txt
 
 默认情况下，Pug-reGeorg 会通过 `curl_cffi` (基于 curl-impersonate + BoringSSL/NSS) 伪装真实浏览器的 TLS ClientHello、HTTP/2 SETTINGS 帧和请求头顺序，使 JA3/JA4 指纹与 Chrome/Firefox/Safari 完全一致。可规避大多数基于指纹的检测：WAF、CDN (Cloudflare/Akamai/Imperva)、TLS inspection 设备 (PAN、F5、Fortinet) 以及带 JA3 规则的 NIDS (Suricata、Zeek)。
 
-* 默认: `--impersonate chrome` (curl_cffi 打包的最新 Chrome 指纹)
+**注意:** 即使不指定 `--impersonate` 参数，也会**默认启用 Chrome 指纹伪装**。
+
+* 默认行为 (无需指定参数): 使用最新 Chrome 指纹
+  ```bash
+  python pugreg.py -u https://target.com/tunnel.php -k mykey
+  # ↑ 等同于 --impersonate chrome
+  ```
 * 指定版本: `--impersonate firefox133`、`--impersonate safari17_0` 等
 * 随机: `--impersonate random` (从推荐池随机选一个，同一次运行内保持不变)
 * 关闭: `--impersonate off` (回退到 python-requests 指纹)
