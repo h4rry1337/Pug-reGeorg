@@ -56,7 +56,6 @@ python -m pip install -r requirements.txt
   # ↑ 等同于 --impersonate chrome
   ```
 * 指定版本: `--impersonate firefox133`、`--impersonate safari17_0` 等
-* 随机: `--impersonate random` (从推荐池随机选一个，同一次运行内保持不变)
 * 关闭: `--impersonate off` (回退到 python-requests 指纹)
 * 查看已安装 curl_cffi 支持的完整列表: `python pugreg.py --list-impersonate`
 
@@ -224,9 +223,9 @@ $ python pugreg.py -h
                             Enable NTLM authentication for web requests (format:
                             DOMAIN\USER:PASSWORD or USER:PASSWORD)
       --impersonate PROFILE
-                            TLS/HTTP fingerprint profile (default: chrome).
-                            Special: 'random' (per-session), 'off' (disable). See
-                            --list-impersonate for available profiles
+                            TLS/HTTP fingerprint profile (default: chrome). Use
+                            'off' to disable. See --list-impersonate for available
+                            profiles
       --list-impersonate    List impersonation profiles supported by the installed
                             curl_cffi and exit
       -v                    Increase verbosity level (use -vv or more for greater

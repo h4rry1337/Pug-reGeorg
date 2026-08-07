@@ -38,7 +38,6 @@ By default, Pug-reGeorg uses `curl_cffi` (built on curl-impersonate + BoringSSL/
   # ↑ Equivalent to --impersonate chrome
   ```
 * Pin a version: `--impersonate firefox133`, `--impersonate safari17_0`, etc.
-* Randomize per invocation: `--impersonate random` (held constant across a single SOCKS session)
 * Disable: `--impersonate off` (falls back to the python-requests fingerprint)
 * List everything supported by your installed curl_cffi: `python pugreg.py --list-impersonate`
 
@@ -225,9 +224,9 @@ $ python pugreg.py -h
                             Enable NTLM authentication for web requests (format:
                             DOMAIN\USER:PASSWORD or USER:PASSWORD)
       --impersonate PROFILE
-                            TLS/HTTP fingerprint profile (default: chrome).
-                            Special: 'random' (per-session), 'off' (disable). See
-                            --list-impersonate for available profiles
+                            TLS/HTTP fingerprint profile (default: chrome). Use
+                            'off' to disable. See --list-impersonate for available
+                            profiles
       --list-impersonate    List impersonation profiles supported by the installed
                             curl_cffi and exit
       -v                    Increase verbosity level (use -vv or more for greater

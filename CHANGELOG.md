@@ -9,7 +9,7 @@
     5. Adicionado: Referência clara ao fork do Neo-reGeorg nos READMEs
 ### v5.4.0:
     1. 默认启用 TLS/HTTP 指纹伪装 (JA3/JA4/HTTP2)，通过 curl_cffi 实现，规避 WAF/CDN/NIDS 基于指纹的检测
-    2. 新增 `--impersonate PROFILE` 参数用于选择或覆盖浏览器指纹配置 (默认: chrome，特殊值: random / off)
+    2. 新增 `--impersonate PROFILE` 参数用于选择或覆盖浏览器指纹配置 (默认: chrome，使用 'off' 禁用)
     3. 新增 `--list-impersonate` 参数列出已安装 curl_cffi 支持的所有指纹配置
     4. 新增 `requirements.txt` 简化依赖安装
     5. 更新 `choice_useragent()` 内置 UA 池为现代浏览器版本 (Chrome 131 / Firefox 133 / Safari 17 / Edge)，仅在关闭指纹伪装时使用

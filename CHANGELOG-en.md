@@ -9,7 +9,7 @@
     5. Added: Clear fork reference to Neo-reGeorg in READMEs
 ### v5.4.0:
     1. Enabled TLS/HTTP fingerprint impersonation (JA3/JA4/HTTP2) by default via curl_cffi to evade WAF/CDN/NIDS fingerprint-based detection
-    2. Added `--impersonate PROFILE` to select or override the browser fingerprint (default: chrome; special values: random, off)
+    2. Added `--impersonate PROFILE` to select or override the browser fingerprint (default: chrome; use 'off' to disable)
     3. Added `--list-impersonate` to enumerate profiles supported by the installed curl_cffi
     4. Added `requirements.txt` to simplify dependency installation
     5. Modernized the fallback User-Agent pool (Chrome 131 / Firefox 133 / Safari 17 / Edge), only used when impersonation is disabled
